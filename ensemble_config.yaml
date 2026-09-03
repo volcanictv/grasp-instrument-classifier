@@ -1,0 +1,27 @@
+# Operational default (0.40), not the independently-validated-best value
+# (flat 0.25 each) -- see WEIGHTS.md for the full trade-off. Change this
+# single value to test a different weight; the remaining 3 members always
+# split (1 - weight_resnet50_320) equally.
+weight_resnet50_320: 0.40
+
+members:
+  - checkpoint: weights/resnet50_320.pt
+    model: resnet50
+    image_size: 320
+    letterbox: true
+    label: resnet50_320
+  - checkpoint: weights/resnet50_224.pt
+    model: resnet50
+    image_size: 224
+    letterbox: true
+    label: resnet50_224
+  - checkpoint: weights/mobilenet_baseline.pt
+    model: mobilenet_v3_small
+    image_size: 224
+    letterbox: false
+    label: baseline
+  - checkpoint: weights/mobilenet_letterbox.pt
+    model: mobilenet_v3_small
+    image_size: 224
+    letterbox: true
+    label: letterbox_crop
