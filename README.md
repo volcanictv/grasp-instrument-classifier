@@ -12,6 +12,10 @@ upstream detection/segmentation stage.
 pip install -r requirements.txt
 ```
 
+Add `pip install -r requirements-tracking.txt` only if you use the
+optional temporal-tracking correction (see below) -- not needed for the
+base classifier.
+
 ## Use
 
 ```python
@@ -90,7 +94,69 @@ training gap. Five independent fixes were tried and ruled out (see the
 parent research repo's `docs/DECISIONS.md`, 2026-09-03 entries) --
 resolving this would need either more training examples specifically of
 this confusion, or a non-visual signal (e.g. instrument kinematic state)
-this package does not have access to.
+this package does not have access to. Temporal tracking (below) narrows
+this gap but does not close it.
+
+## Temporal tracking (optional)
+
+`predict()` above scores one frame. `grasp_classifier.tracking` adds an
+optional, confidence-gated correction on top, with no retraining: when
+the base ensemble's own confidence on an instance falls below 0.80, its
+mask is propagated forward and backward across nearby video frames with
+SAM2, every propagated frame is scored with the same ensemble, and the
+predictions are averaged.
+
+```python
+from grasp_classifier import EnsembleClassifier
+from grasp_classifier.tracking import TemporalTracker, predict_with_tracking
+
+classifier = EnsembleClassifier(device="cuda:0")
+tracker = TemporalTracker(
+    classifier,
+    sam2_checkpoint="path/to/sam2.1_hiera_large.pt",
+    sam2_config="configs/sam2.1/sam2.1_hiera_l.yaml",
+    device="cuda:0",
+)
+
+result = predict_with_tracking(
+    classifier, tracker, image, frames_dir="path/to/consecutive/frames",
+    center_idx=10, box_xywh=(x, y, w, h), mask=mask,
+)
+```
+
+`frames_dir` is a directory of consecutive video frames (filenames sort
+into chronological order); `center_idx` is where, in that sorted list,
+the given frame/box/mask sit. Only pay for tracking on instances that
+actually need it -- `predict_with_tracking` runs the cheap single-frame
+path first and only invokes SAM2 below the confidence threshold, matching
+the policy this was validated under.
+
+Needs `sam2` and a separately downloaded checkpoint, not installed by
+`requirements.txt` -- see `requirements-tracking.txt`. Not required to
+use the base classifier; importing `grasp_classifier.tracking` itself
+doesn't need `sam2` either, only constructing a `TemporalTracker` does.
+
+**Measured on the full official GraSP test set** (not a projection):
+
+| | accuracy | macro-F1 |
+|---|---|---|
+| ensemble alone | 0.9343 | 0.903 |
+| + confidence-gated tracking | 0.9567 | 0.934 |
+
+Every one of the 7 classes improves, including the two weakest
+(Laparoscopic Grasper 0.800 -> 0.838 F1, Clip Applier 0.895 -> 0.947 F1).
+Applying this to every instance instead of gating it was tested and
+rejected: propagation has a measured ~9.8% chance of turning an
+already-correct, low-confidence prediction wrong, which costs more than
+it gains once applied indiscriminately.
+
+**Cost**: SAM2's own per-frame encoding cost alone (~398ms, reference
+GPU) rules out real-time use on any hardware -- this is an offline,
+batch-applied correction, not a pipeline stage for a live video feed.
+Full per-instance cost when tracking does run: ~13.5s (SAM2 propagation
+across a ~20-frame window plus re-scoring every frame with the ensemble).
+See the parent research repo's `docs/DECISIONS.md`, 2026-09-15/16
+entries, for the full derivation.
 
 ## What's not in this package
 

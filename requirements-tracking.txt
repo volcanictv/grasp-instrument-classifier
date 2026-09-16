@@ -1,0 +1,15 @@
+# Optional, only needed to use grasp_classifier.tracking (SAM2 temporal-
+# track correction). Not installed by requirements.txt because the base
+# ensemble classifier never needs it, and SAM2 pulls in a much heavier
+# dependency chain.
+#
+# SAM2 is not a standard versioned PyPI release -- install per Meta's own
+# instructions:
+#   pip install git+https://github.com/facebookresearch/sam2
+#
+# You also need a checkpoint + its matching model config (not bundled
+# here -- these are large, separately-licensed downloads). The parent
+# research repo used sam2.1_hiera_large; see
+# https://github.com/facebookresearch/sam2#model-checkpoints for the
+# official download links, and pass both paths to
+# grasp_classifier.tracking.TemporalTracker.

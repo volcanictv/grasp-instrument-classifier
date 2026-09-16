@@ -60,6 +60,18 @@ def crop_instance(
     return Image.fromarray(crop)
 
 
+def box_from_mask(mask: np.ndarray) -> tuple[int, int, int, int]:
+    """Derives an `(x, y, w, h)` box from a mask's own pixel extent, for
+    frames that only have a propagated mask and no separately annotated
+    box (see `grasp_classifier.tracking`). Raises on an empty mask rather
+    than returning a degenerate box silently."""
+    ys, xs = np.nonzero(mask)
+    if len(xs) == 0:
+        raise ValueError("mask is empty -- cannot derive a bounding box")
+    x0, y0, x1, y1 = int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1
+    return (x0, y0, x1 - x0, y1 - y0)
+
+
 def build_eval_transform(image_size: int) -> transforms.Compose:
     return transforms.Compose(
         [
