@@ -1,4 +1,4 @@
-"""Minimal usage example for confidence-gated SAM2 temporal tracking.
+"""Minimal usage example for uncertainty-gated SAM2 temporal tracking.
 Needs `sam2` installed (see requirements-tracking.txt) and a downloaded
 checkpoint + config. Run from the repo root:
 
@@ -47,10 +47,11 @@ def main() -> None:
 
     result = predict_with_tracking(classifier, tracker, image, frames_dir, center_idx, box_xywh, mask)
 
-    print(f"predicted: {result.class_name} ({result.confidence:.1%} confidence)")
-    print("all class probabilities:")
-    for name, prob in sorted(result.class_probabilities.items(), key=lambda kv: -kv[1]):
-        print(f"  {name:<28} {prob:.3f}")
+    print(f"predicted: {result.class_name} (uncertainty {result.uncertainty:.0%}, "
+          f"{'tracked across frames' if result.tracked else 'single frame'})")
+    print("share of votes per class:")
+    for name, share in sorted(result.vote_shares.items(), key=lambda kv: -kv[1]):
+        print(f"  {name:<28} {share:.3f}")
 
 
 if __name__ == "__main__":

@@ -1,19 +1,16 @@
 """Optional SAM2-propagated temporal-track correction, gated on the
-ensemble's own prediction confidence. Not a required dependency of the
-base package -- only import this module if you use it; it needs `sam2`
+ensemble's own vote uncertainty. Not a required dependency of the base
+package -- only import this module if you use it; it needs `sam2`
 installed and a SAM2 checkpoint downloaded separately (see README's
 "Temporal tracking" section).
 
-Validated policy (parent research repo, docs/DECISIONS.md 2026-09-16):
-running SAM2 propagation on every prediction is a net negative -- it has
-a measured ~9.8% chance of turning an already-correct, low-confidence
-prediction wrong, which costs more than it gains once applied
-indiscriminately. Only run it when the ensemble's own confidence falls
-below `CONFIDENCE_THRESHOLD`. At that threshold, measured on the full
-official test set: accuracy 0.9343 -> 0.9567, macro-F1 0.903 -> 0.934,
-for ~13.5s of extra latency per corrected instance (offline/batch use
-only -- SAM2's own per-frame encoding cost alone rules out real-time use
-on any hardware).
+Policy (parent research repo, docs/DECISIONS.md 2026-09-20): tracking every
+instance is not worth its cost, so only instances whose vote uncertainty
+reaches the gate (`EnsembleClassifier.uncertainty_gate`, 0.09 by default) are
+tracked. On the official GraSP test set that is 29.1% of instances, and it
+takes accuracy from 0.9266 to 0.9623 and macro-F1 from 0.890 to 0.935, for
+about 24s of GPU time per tracked instance (offline/batch use only -- SAM2's
+own per-frame encoding cost alone rules out real-time use on any hardware).
 """
 
 from __future__ import annotations
@@ -26,16 +23,15 @@ from PIL import Image
 from grasp_classifier.classes import CLASS_NAMES
 from grasp_classifier.ensemble import EnsembleClassifier, Prediction
 from grasp_classifier.preprocess import box_from_mask
-
-CONFIDENCE_THRESHOLD = 0.80
+from grasp_classifier.voting import combine_frame_votes
 
 
 class TemporalTracker:
     """Wraps a SAM2 video predictor to propagate one frame's instance mask
     across nearby frames, then reuses an already-loaded `EnsembleClassifier`
-    to score every propagated frame and average the result (avg-softmax --
-    the aggregation rule validated as stronger than majority-vote in the
-    parent research repo's measurements).
+    to get every propagated frame's votes and combine them with
+    `grasp_classifier.voting.combine_frame_votes` (frames that are more
+    unanimous count for more).
     """
 
     def __init__(
@@ -70,9 +66,9 @@ class TemporalTracker:
         and `box_xywh` belong to (the real, already-known instance).
 
         Propagates the mask forward and backward from `center_idx` across
-        every other frame in `frames_dir`, classifies each resulting crop
-        with the wrapped ensemble, and returns the track-averaged
-        prediction.
+        every other frame in `frames_dir`, gets each resulting crop's votes
+        from the wrapped ensemble, and returns the combined prediction with
+        `tracked=True`.
         """
         frame_paths = sorted(Path(frames_dir).iterdir())
         if not (0 <= center_idx < len(frame_paths)):
@@ -89,26 +85,28 @@ class TemporalTracker:
             if frame_idx != center_idx:
                 track_masks[frame_idx] = (mask_logits[0, 0] > 0).cpu().numpy()
 
-        per_frame_probs = []
+        frame_mc, frame_det = [], []
         for frame_idx, frame_mask in track_masks.items():
             if not frame_mask.any():
                 continue
             image = np.array(Image.open(frame_paths[frame_idx]).convert("RGB"))
-            if frame_idx == center_idx:
-                result = self.classifier.predict(image, box_xywh=box_xywh, mask=frame_mask)
-            else:
-                result = self.classifier.predict(image, box_xywh=box_from_mask(frame_mask), mask=frame_mask)
-            per_frame_probs.append([result.class_probabilities[name] for name in CLASS_NAMES])
+            box = box_xywh if frame_idx == center_idx else box_from_mask(frame_mask)
+            stochastic, deterministic = self.classifier.vote_distribution(image, box, mask=frame_mask)
+            frame_mc.append(stochastic)
+            frame_det.append(deterministic)
 
-        if not per_frame_probs:
+        if not frame_mc:
             raise RuntimeError("propagation produced no usable frames -- mask was lost on every frame including the seed")
 
-        avg = np.mean(per_frame_probs, axis=0)
-        pred_idx = int(avg.argmax())
+        frame_mc, frame_det = np.stack(frame_mc), np.stack(frame_det)
+        pred_idx, uncertainty = combine_frame_votes(frame_mc, frame_det)
+        pooled = frame_mc.mean(axis=0)
         return Prediction(
             class_name=CLASS_NAMES[pred_idx],
-            confidence=float(avg[pred_idx]),
-            class_probabilities={name: float(p) for name, p in zip(CLASS_NAMES, avg)},
+            uncertainty=uncertainty,
+            vote_shares={name: float(v) for name, v in zip(CLASS_NAMES, pooled)},
+            needs_tracking=uncertainty >= self.classifier.uncertainty_gate,
+            tracked=True,
         )
 
 
@@ -120,15 +118,17 @@ def predict_with_tracking(
     center_idx: int,
     box_xywh: tuple[int, int, int, int],
     mask: np.ndarray,
-    confidence_threshold: float = CONFIDENCE_THRESHOLD,
+    uncertainty_gate: float | None = None,
 ) -> Prediction:
-    """The full validated policy in one call: score the single center frame
-    first (cheap), and only pay for SAM2 propagation when the ensemble's
-    own confidence is below `confidence_threshold`. `image` is the center
-    frame's own array (already available to most callers without a re-read);
-    `frames_dir`/`center_idx` are only touched if tracking actually runs.
+    """The full policy in one call: get the single center frame's votes first
+    (cheap), and only pay for SAM2 propagation when its uncertainty reaches
+    the gate. `image` is the center frame's own array (already available to
+    most callers without a re-read); `frames_dir`/`center_idx` are only
+    touched if tracking actually runs. `uncertainty_gate` overrides the
+    classifier's configured gate for this call.
     """
     single = classifier.predict(image, box_xywh=box_xywh, mask=mask)
-    if single.confidence >= confidence_threshold:
+    gate = classifier.uncertainty_gate if uncertainty_gate is None else uncertainty_gate
+    if single.uncertainty < gate:
         return single
     return tracker.predict(frames_dir, center_idx, box_xywh, mask)
