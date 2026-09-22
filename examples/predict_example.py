@@ -22,13 +22,14 @@ def main() -> None:
     image_path, x, y, w, h = sys.argv[1], *map(int, sys.argv[2:6])
     image = np.array(Image.open(image_path).convert("RGB"))
 
-    classifier = EnsembleClassifier()  # add device="cuda:0" for GPU
+    classifier = EnsembleClassifier()  # add device="cuda:0" for GPU, seed=0 for repeatable votes
     result = classifier.predict(image, box_xywh=(x, y, w, h))
 
-    print(f"predicted: {result.class_name} ({result.confidence:.1%} confidence)")
-    print("all class probabilities:")
-    for name, prob in sorted(result.class_probabilities.items(), key=lambda kv: -kv[1]):
-        print(f"  {name:<28} {prob:.3f}")
+    print(f"predicted: {result.class_name} (uncertainty {result.uncertainty:.0%}, "
+          f"{'worth tracking' if result.needs_tracking else 'confident enough to keep'})")
+    print("share of votes per class:")
+    for name, share in sorted(result.vote_shares.items(), key=lambda kv: -kv[1]):
+        print(f"  {name:<28} {share:.3f}")
 
 
 if __name__ == "__main__":
