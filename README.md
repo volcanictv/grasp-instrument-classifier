@@ -6,7 +6,18 @@ how uncertain it is. This is a **classification-only** component: it does not
 locate instruments -- it expects a box (and ideally a mask) as input from an
 upstream detection/segmentation stage.
 
-**No softmax anywhere.** Each of the 4 ensemble members runs 20 stochastic
+> **Status (2026-09-29): the research default is now a single-pass evidential
+> pipeline, and this package still implements the MC-Dropout vote pipeline.**
+> The lab's default pipeline is a four-member evidential ensemble (one
+> deterministic pass per member, an epistemic-score gate for SAM2 tracking).
+> It is about 0.7 to 1.0 point less accurate than the vote pipeline below at
+> matched tracking budgets on GraSP's official test set (single seed end to end),
+> with 4 forward passes per instance instead of 80. Its checkpoints live on the
+> lab machine and have not been released, and no evidential inference code is in
+> this package yet, so `predict()` below is the vote pipeline. The vote pipeline
+> remains available as the higher-accuracy configuration. See `WEIGHTS.md`.
+
+**No softmax anywhere in this package's method.** Each of the 4 ensemble members runs 20 stochastic
 passes with dropout left on (MC Dropout). Every pass votes for the class of
 its largest logit; the prediction is the class with the most weighted votes,
 and the uncertainty is the share of votes that disagree with it. The optional

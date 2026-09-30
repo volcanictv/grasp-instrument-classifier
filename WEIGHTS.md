@@ -44,3 +44,29 @@ checkpoints (different layer structure), and the reverse. Checkpoint
 selection for these members used the official test set as validation, as it
 did for the earlier ones, so the test numbers in the README are not
 independent of that choice.
+
+# Status of the evidential default (2026-09-29)
+
+The research repository now defines the evidential pipeline as its default
+(`configs/pipeline_default.yaml` there). The checkpoints in `weights/` are the
+dropout-trained members of the vote pipeline. The evidential members are
+separate checkpoints (same four architectures, trained with the evidential
+Dirichlet loss, lambda 0.01, KL anneal 10 of 20 epochs, no dropout-based
+uncertainty needed). They are on the lab machine and have **not been released**
+into this package, and this package contains no evidential inference code, so
+nothing here changes what `predict()` does.
+
+Measured on GraSP's official test set (2,861 instances, 5 cases), one seed end
+to end:
+
+| pipeline | tracked | accuracy | macro-F1 | passes per instance |
+|---|---|---|---|---|
+| vote pipeline (this package), 9% gate | 833 | 0.9623 | 0.9351 | 80 |
+| evidential, same 833-instance budget | 833 | 0.9521 | 0.9242 | 4 |
+| evidential, fold1-chosen threshold | 539 | 0.9507 | 0.9279 | 4 |
+
+The evidential pipeline is about 0.7 to 1.0 point lower at matched budgets. It
+is chosen as the lab default for cost and defensibility, not accuracy, and it
+is not better calibrated than softmax. Seed noise of the evidential ensemble
+alone is 0.0031 accuracy (three seeds); the end-to-end gap was measured on one
+seed.
