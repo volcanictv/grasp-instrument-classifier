@@ -10,9 +10,10 @@ upstream detection/segmentation stage.
 > pipeline, and this package still implements the MC-Dropout vote pipeline.**
 > The lab's default pipeline is a four-member evidential ensemble (one
 > deterministic pass per member, an epistemic-score gate for SAM2 tracking).
-> It is about 0.7 to 1.0 point less accurate than the vote pipeline below at
-> matched tracking budgets on GraSP's official test set (single seed end to end),
-> with 4 forward passes per instance instead of 80. Its checkpoints live on the
+> Averaged over three seeds it is 0.3 to 0.5 points less accurate than the vote
+> pipeline below at matched tracking budgets on GraSP's official test set (less
+> than one seed SD; the vote pipeline is a single training), with 4 forward
+> passes per instance instead of 80. Its checkpoints live on the
 > lab machine and have not been released, and no evidential inference code is in
 > this package yet, so `predict()` below is the vote pipeline. The vote pipeline
 > remains available as the higher-accuracy configuration. See `WEIGHTS.md`.

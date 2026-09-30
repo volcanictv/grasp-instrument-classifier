@@ -56,17 +56,20 @@ uncertainty needed). They are on the lab machine and have **not been released**
 into this package, and this package contains no evidential inference code, so
 nothing here changes what `predict()` does.
 
-Measured on GraSP's official test set (2,861 instances, 5 cases), one seed end
-to end:
+Measured on GraSP's official test set (2,861 instances, 5 cases):
 
 | pipeline | tracked | accuracy | macro-F1 | passes per instance |
 |---|---|---|---|---|
-| vote pipeline (this package), 9% gate | 833 | 0.9623 | 0.9351 | 80 |
-| evidential, same 833-instance budget | 833 | 0.9521 | 0.9242 | 4 |
-| evidential, fold1-chosen threshold | 539 | 0.9507 | 0.9279 | 4 |
+| vote pipeline (this package), 9% gate, single training | 833 | 0.9623 | 0.9351 | 80 |
+| evidential, same 833-instance budget, mean of 3 seeds | 833 | 0.9577 +/- 0.0050 | 0.9320 +/- 0.0073 | 4 |
+| three-member evidential, same budget, mean of 3 seeds | 833 | 0.9593 +/- 0.0039 | 0.9372 +/- 0.0033 | 3 |
+| evidential, seed 42, fold1-chosen threshold | 539 | 0.9507 | 0.9279 | 4 |
 
-The evidential pipeline is about 0.7 to 1.0 point lower at matched budgets. It
-is chosen as the lab default for cost and defensibility, not accuracy, and it
-is not better calibrated than softmax. Seed noise of the evidential ensemble
-alone is 0.0031 accuracy (three seeds); the end-to-end gap was measured on one
-seed.
+Seed 42, the one the fold1 threshold was set on and the lowest of the three,
+is 0.9521 at 833 instances. Averaged over seeds the evidential pipeline is 0.3
+to 0.5 points below the vote pipeline at matched budgets (525, 649 and 833
+instances), less than the seed standard deviation of about half a point. The
+vote pipeline is one training, so its own seed spread is unknown. The
+evidential pipeline is chosen as the lab default for cost and defensibility,
+not accuracy, and it is not better calibrated than softmax. The evidential
+ensemble alone scores 0.9240 +/- 0.0031 accuracy across three seeds.
