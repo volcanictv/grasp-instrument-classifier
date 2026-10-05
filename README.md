@@ -1,222 +1,185 @@
-# GraSP Instrument Classifier
+# GraSP Instrument Pipeline
 
-Given a video frame and a bounding box (from your own detector/segmenter),
-classifies the surgical instrument inside it into one of 7 classes, and says
-how uncertain it is. This is a **classification-only** component: it does not
-locate instruments -- it expects a box (and ideally a mask) as input from an
-upstream detection/segmentation stage.
+Surgical instrument recognition for the GraSP benchmark (7 instrument classes), from frames and boxes to instance masks, classes, an uncertainty score
+and a temporal correction for the uncertain cases. Everything needed to run it is in this repository: the code, the configs, the weights manifest and
+a command-line runner.
 
-> **Status (2026-09-29): the research default is now a single-pass evidential
-> pipeline, and this package still implements the MC-Dropout vote pipeline.**
-> The lab's default pipeline is a four-member evidential ensemble (one
-> deterministic pass per member, an epistemic-score gate for SAM2 tracking).
-> Averaged over three seeds it is 0.3 to 0.5 points less accurate than the vote
-> pipeline below at matched tracking budgets on GraSP's official test set (less
-> than one seed SD; the vote pipeline is a single training), with 4 forward
-> passes per instance instead of 80. Its checkpoints live on the
-> lab machine and have not been released, and no evidential inference code is in
-> this package yet, so `predict()` below is the vote pipeline. The vote pipeline
-> remains available as the higher-accuracy configuration. See `WEIGHTS.md`.
+```
+frame + boxes ──► BoxSegmenter ──► masks ──► evidential ensemble ──► class + uncertainty ──► (uncertain?) ──► SAM2 tracking ──► corrected class
+                  SAM2 (+ SAM3)               4 members, 1 pass         epistemic score S1                    ±10 frames
+```
 
-**No softmax anywhere in this package's method.** Each of the 4 ensemble members runs 20 stochastic
-passes with dropout left on (MC Dropout). Every pass votes for the class of
-its largest logit; the prediction is the class with the most weighted votes,
-and the uncertainty is the share of votes that disagree with it. The optional
-temporal tracking uses the same votes to decide when to run and to combine
-frames. No class probability is computed or returned.
+It takes boxes as input, from your own detector or from ground truth. It does not detect instruments.
+
+## Quickstart
+
+```bash
+git clone <this repo> && cd grasp-instrument-classifier
+pip install -r requirements.txt -r requirements-pipeline.txt     # see "Install" for the SAM2 package
+python -m grasp_pipeline.weights --fetch                        # downloads the weights (about 2.7 GB) and checks every checksum
+python -m grasp_pipeline.run --frames path/to/frames --boxes boxes.json --out out/ --device cuda
+```
+
+`boxes.json` maps a frame file name to its boxes, each `[x, y, w, h]` in native pixels (see `examples/boxes_example.json`):
+
+```json
+{"00001.jpg": [[120, 80, 210, 160], [400, 300, 150, 220]]}
+```
+
+For every listed frame the output has `<frame>.json` (per instrument: box, class, epistemic score, whether it was tracked, the single-pass class, the
+belief over the 7 classes) and `<frame>.png` (the semantic map: 0 background, 1 to 7 the classes in the order below). Frames in the folder are read in
+sorted order and are assumed to be about one second apart; the tracker uses the 10 frames on each side of a flagged frame.
+
+From Python (`examples/pipeline_example.py` is a runnable version):
+
+```python
+from PIL import Image
+import numpy as np
+from grasp_classifier.evidential import EvidentialEnsembleClassifier
+from grasp_pipeline.segment import BoxSegmenter
+from grasp_pipeline.track import EvidentialTracker
+from grasp_pipeline.pipeline import InstrumentPipeline, semantic_map
+
+W = "weights"
+classifier = EvidentialEnsembleClassifier("evidential_config.yaml", device="cuda:0")
+segmenter = BoxSegmenter(f"{W}/sam2.1_hiera_large.pt", sam2_delta=f"{W}/sam2_delta.pt", sam3_delta=f"{W}/sam3_delta.pt", device="cuda:0")
+tracker = EvidentialTracker(classifier, f"{W}/sam2.1_hiera_large.pt", device="cuda:0")      # optional
+pipeline = InstrumentPipeline(segmenter, classifier, tracker)
+
+frames = [np.array(Image.open(p).convert("RGB")) for p in paths]                           # consecutive frames, about 1 per second
+results = pipeline.process_frame(frames[i], boxes_xywh, context_frames=frames, center_idx=i)
+for r in results:
+    print(r.class_name, r.epistemic, r.tracked, r.single_pass_class)
+sem = semantic_map(frames[i].shape[:2], results)                                           # per-pixel classes, what mIoU is computed on
+```
+
+Classes, in the fixed order of every output: Bipolar Forceps, Prograsp Forceps, Large Needle Driver, Monopolar Curved Scissors, Suction Instrument,
+Clip Applier, Laparoscopic Grasper.
+
+## What runs, and what you can switch off
+
+| mode | how | needs |
+|---|---|---|
+| SAM2 + SAM3 segmenter (the measured configuration) | default | the gated SAM3 base weights, see below |
+| SAM2 alone | `--no-sam3` | nothing gated |
+| single pass, no tracking | `--no-tracking` | much faster; no SAM2 video predictor |
+| causal tracking (past frames only) | `--causal` | |
+| clip masks to their boxes | `--clip-to-box` | only meaningful for ground-truth boxes |
+
+SAM3's base weights are a gated model on Hugging Face (`facebook/sam3`): accept the licence on the model page and run `huggingface-cli login` once.
+Without that, use `--no-sam3`. **The measured results below are for SAM2 plus SAM3; SAM2 alone with these weights has not been scored.** For scale, adding
+SAM3 to the segmenter ensemble was worth about 0.4 mIoU in the step table below.
+
+## What it scores
+
+GraSP official test set, 2,861 instruments in 1,125 frames from 5 cases, **with ground-truth boxes as input** (TAPIS and ISINet find their own boxes, so
+this is an oracle-box comparison, an upper bound for a pipeline fed by a detector). Segmentation metrics are the benchmark's: mIoU, IoU, mcIoU, computed
+with code ported from the MATIS evaluation (`grasp_pipeline/scoring.py`). Final configuration: all-case segmenters, tracker-style-crop classifier members,
+the 833 most uncertain instruments of 2,861 tracked, three classifier seeds.
+
+| | mIoU | IoU | mcIoU |
+|---|---|---|---|
+| **This pipeline, seed 44** (the seed picked in advance on a held-out fold) | 87.49 | 86.41 | 79.78 |
+| This pipeline, three-seed mean ± SD | 87.37 ± 0.33 | 86.22 ± 0.46 | 78.33 ± 1.28 |
+| 95% interval, bootstrap over the 5 cases | 86.85 to 88.21 | 85.56 to 87.09 | 76.33 to 79.81 |
+| TAPIS (Swin-L Mask2Former + video transformer), published | 86.61 | 83.38 | 77.42 |
+| TAPIS-VST, published | 86.36 | 83.51 | 77.54 |
+
+How to read it: IoU is clearly above TAPIS. mIoU is modestly above. mcIoU is not distinguishable (TAPIS lies inside our interval). The IoU margin is the
+one most inflated by oracle boxes, because that metric counts spurious classes against a method and ground-truth boxes produce none. Instance-level
+accuracy is about 0.957 and macro-F1 about 0.929 (three-seed mean). With perfect classes on these masks the three scores would be 91.17, 91.17 and 88.95:
+the segmentation ceiling.
+
+Each step of the pipeline, three-seed means, same frames (differences of 0.3 are inside the noise; the paired intervals are in
+`docs/reports/gtbox_sam/bootstrap_cis.json` of the research repository):
+
+| step | mIoU | IoU | mcIoU |
+|---|---|---|---|
+| SAM2 masks, baseline classifier members | 86.34 | 85.31 | 77.59 |
+| + SAM3 in the segmenter ensemble | 86.78 | 85.72 | 77.90 |
+| + classifier trained with tracker-style crops | 87.11 | 85.97 | 78.19 |
+| + segmenters trained on all 8 training cases (final) | 87.37 | 86.22 | 78.33 |
+
+Per-class IoU of the final configuration: Bipolar Forceps 84.0, Prograsp Forceps 67.5, Large Needle Driver 87.0, Monopolar Curved Scissors 94.2,
+Suction Instrument 78.1, Clip Applier 76.8, Laparoscopic Grasper 60.7. The Grasper is the weak class: with its jaws closed it is a featureless shaft,
+visually the same as a suction tube.
+
+## The parts
+
+**Segmenter.** SAM2.1-large and SAM3, both fine-tuned on GraSP with ground-truth boxes as prompts, each run on the image and its mirror image, the mask
+logits averaged and then averaged across the two models. Fine-tuning changed only some tensors, so the weights ship as deltas over the base models:
+for SAM2 the decoder, prompt encoder, neck and last four encoder blocks (267 MB); for SAM3 only the mask decoder and prompt encoder (15 MB; an
+encoder-training option in the training script never reached the weights, see the protocol document's correction). Mean mask IoU against the ground-truth
+masks on the test set is 0.908.
+
+**Classifier.** Four members, one deterministic pass each: ResNet-50 at 320 px, ResNet-50 at 224 px, MobileNetV3-small with a stretched crop, MobileNetV3-small
+with a letterboxed crop; weights 0.40, 0.20, 0.20, 0.20. A member's 7 logits are read as Dirichlet evidence (exp of the clamped logit plus one); the
+ensemble's parameters are the weighted mean, the prediction is the largest mean belief, and the uncertainty is the epistemic score
+`(1 - sum(mu^2)) / (alpha0 + 1)` of Duan et al. (WACV 2024). No softmax anywhere. Members were trained on the official training cases with a
+tracker-style-crop augmentation: half the time a crop is swapped for a stored crop of the same instrument a few frames away, as a tracker would produce.
+The 0.40 weight was set in the first weeks on the official test set; a later check on held-out folds did not confirm it over flat weights, and it was kept
+by decision (see `WEIGHTS.md`). Treat it as a default, not a validated optimum.
+
+**Gate.** An instance whose score reaches `epistemic_gate` (`evidential_config.yaml`) is sent to tracking. 1.7e-5 was chosen on a held-out fold for the
+baseline members; these members are less confident and it flags about 42% of the test instruments (seed 44). The reported results tracked a fixed share
+instead, the 833 most uncertain of 2,861 (29%), which corresponds to a threshold of 1.6e-4 for seed 44 on that run, a value derived from the test
+instances. Raise the gate to track fewer.
+
+**Tracker.** SAM2-large video propagation of the flagged instrument's mask over the 10 frames on each side (about 20 seconds in total at the intended
+sampling), the classifier on every propagated crop, and a confidence-weighted fusion of the frames. **It uses future frames, so it is not causal**
+(`--causal` propagates backwards only; the cost of doing so was not measured with this tracker). TAPIS is non-causal as well: its 16-frame clip spans about
+8 seconds around the keyframe.
+
+## Cost
+
+Measured on one Titan Xp (Pascal, no fast half precision), one frame at a time, 2.5 instruments per frame on average.
+
+| stage | time |
+|---|---|
+| SAM2 masks, single pass | 0.53 s per frame (1.05 s with the mirror pass) |
+| SAM3 masks, single pass | 1.16 s per frame (2.38 s with the mirror pass) |
+| four-member classifier | 0.10 s per frame |
+| SAM2-large tracking | about 13 s per tracked instrument (21 frames) |
+| TAPIS, for reference | 0.48 s per keyframe |
+
+So the pipeline is far slower than TAPIS: about 3.5 s per frame for the ensemble segmenter before any tracking, and tracking dominates. It is an offline,
+batch tool. Newer GPUs with bf16 hardware should be several times faster; that has not been measured here. A run of the command-line tool on 4 frames and
+11 instruments, model loading included, took 69 s on the same GPU.
 
 ## Install
 
-```
+Tested with Python 3.11, PyTorch 2.8 (CUDA 12.6), transformers 5.18.0 (SAM3 only) and SAM2 at commit `2b90b9f`. `requirements-lock.txt` is the exact
+environment the results were produced in (it names the CUDA 12.6 PyTorch build; install PyTorch from its own index).
+
+```bash
 pip install -r requirements.txt
+pip install -r requirements-pipeline.txt        # transformers for SAM3, huggingface_hub
+pip install "git+https://github.com/facebookresearch/sam2@2b90b9f5ceec907a1c18123530e92e794ad901a4"
 ```
 
-Add `pip install -r requirements-tracking.txt` only if you use the
-optional temporal-tracking correction (see below) -- not needed for the
-base classifier.
+`python -m grasp_pipeline.weights` lists every weight file with its size, checksum state and role. `weights_manifest.json` is the source of truth. The SAM2.1
+base checkpoint has Meta's public URL. The GraSP weights are hosted at https://huggingface.co/AryanB005/grasp-instrument-pipeline, with the manifest URLs
+pinned to a commit. `--fetch` downloads and verifies all of them (about 2.7 GB, the default run needs about 1.4 GB of it; use `--only` to restrict).
 
-## Use
+## Tests
 
-```python
-import numpy as np
-from PIL import Image
-from grasp_classifier import EnsembleClassifier
+`pytest tests/test_evidential.py tests/test_pipeline.py tests/test_manifest.py` runs without any weights (synthetic checkpoints; the segmenter and tracker are
+replaced by stand-ins). The older tests load the shipped vote-pipeline checkpoints and are marked `slow`. Against the research pipeline with the real weights:
+classifier logits on 60 test instruments agree to 7e-5 with identical predictions, segmenter masks on 27 instruments are identical, and the tracker's fused
+class agrees on 6 of 6 tracked instruments.
 
-classifier = EnsembleClassifier()  # device="cuda:0" for GPU, seed=0 for repeatable votes
-image = np.array(Image.open("frame.jpg").convert("RGB"))  # HxWx3 uint8
+## Limits
 
-result = classifier.predict(image, box_xywh=(x, y, w, h))
-print(result.class_name, result.uncertainty, result.needs_tracking)
-print(result.vote_shares)  # dict of all 7 classes -> share of votes
-```
+- Boxes in, so detection quality is outside these numbers. A detector's boxes will cost accuracy; how much is not measured here.
+- GraSP only: 7 classes, one dataset, five test cases. The 0.40 member weight and the tracked share of 29% were set with test-set exposure; the
+  threshold-based gate (held-out) is the cleaner setting.
+- The segmenters were each trained once; the seed spread above covers the classifier only.
+- Clipping masks to ground-truth boxes (`--clip-to-box`) adds about 0.2 mIoU and works only because ground-truth boxes are tight bounds of the true masks.
+- SAM3's licence and gating are Meta's; SAM2 is Apache 2.0. The GraSP dataset has its own terms. This repository has no licence file yet.
 
-Pass `mask=` (a boolean HxW array, same size as `image`) if your upstream
-stage produces instance masks, not just boxes -- see "Input contract"
-below for why this matters. See `examples/predict_example.py` for a
-runnable end-to-end example.
+## More
 
-Votes use random dropout masks, so two calls on the same input can differ
-slightly (mostly on instances that are near a tie). Pass `seed=` to the
-constructor for repeatable results.
-
-## Input contract
-
-- `image`: full RGB video frame, `HxWx3` `uint8`, native resolution (not
-  pre-resized -- the box coordinates must match this frame's own pixel
-  space).
-- `box_xywh`: `(x, y, w, h)` in that frame's native pixel coordinates,
-  one instrument instance.
-- `mask` (optional but recommended): boolean array, same `HxW` as
-  `image`, `True` where this specific instrument is. Without a mask, the
-  raw box crop is used as-is, which risks pulling in a second,
-  overlapping instrument -- GraSP frames routinely have 2-3 instruments
-  at once, and the classifier was trained on mask-cleaned crops. If your
-  upstream stage only gives boxes, it still works, just with a modest
-  expected accuracy cost on overlapping-instrument cases (not
-  independently re-measured for this package; see the parent research
-  repo's `docs/error_analysis.md` for how this was characterized during
-  development, "Problem 4" in `docs/imbalance_notes.md`).
-
-## Output
-
-A `Prediction` with:
-
-- `class_name` (str): the class with the most weighted votes.
-- `uncertainty` (float, 0-1): the share of votes that disagree with
-  `class_name`; 0 means every pass of every member agreed.
-- `vote_shares` (dict, all 7 classes): each class's share of the votes, sums
-  to 1.
-- `needs_tracking` (bool): `uncertainty` reached the configured gate
-  (`uncertainty_gate` in `ensemble_config.yaml`, 0.09).
-- `tracked` (bool): True only for a result returned by temporal tracking.
-
-Class order (fixed, do not reorder -- see `grasp_classifier/classes.py`):
-Bipolar Forceps, Prograsp Forceps, Large Needle Driver, Monopolar Curved
-Scissors, Suction Instrument, Clip Applier, Laparoscopic Grasper.
-
-## What this is, measured
-
-4-model weighted ensemble (2x ResNet-50 at different resolutions, 2x
-MobileNetV3-Small), each retrained with dropout inside the network,
-evaluated on GraSP's official test set (oracle bounding boxes/masks -- given
-a real detector/segmenter's own boxes instead, expect a measurable accuracy
-cost from imperfect localization, not measured for this package
-specifically):
-
-| | accuracy | macro-F1 |
-|---|---|---|
-| ensemble alone (weighted 0.40, one training run) | 0.9266 | 0.8898 |
-| flat-weighted alternative | 0.9238 | 0.8943 |
-
-See `WEIGHTS.md` for why two rows are listed and how to switch between
-them -- this is a disclosed, open trade-off, not an oversight. These are
-single training runs, so no seed-to-seed spread is given.
-
-`uncertainty` separates wrong from right predictions with an AUROC of 0.896
-(0.5 is chance, 1.0 is perfect) on the same test set. It cannot flag the
-errors on which every pass and member agrees on the wrong class (8 of the
-210 errors).
-
-**Cost**: one deterministic pass of the 4 members takes ~20ms/instance on a
-Titan Xp GPU; the 80 votes (4 members x 20 passes) that `predict()` runs take
-~97ms and ~640MB of GPU memory. CPU-only (4-core i5, PyTorch): ~172ms for one
-pass, ~3.3s for the 80 votes -- the two ResNet-50 members account for
-essentially all of it. Pass a smaller `mc_samples` to trade vote stability for
-speed. Model size: ~200MB total across the 4 checkpoints.
-
-**Known limitation, not fixed**: Laparoscopic Grasper is confused with
-Suction Instrument specifically when the Grasper's jaws are closed --
-confirmed to be a genuine physical-state ambiguity (a closed-jaw crop is a
-featureless shaft, visually indistinguishable from a suction tube), not a
-training gap. Five independent fixes were tried and ruled out (see the
-parent research repo's `docs/DECISIONS.md`, 2026-09-03 entries) --
-resolving this would need either more training examples specifically of
-this confusion, or a non-visual signal (e.g. instrument kinematic state)
-this package does not have access to. Temporal tracking (below) narrows
-this gap but does not close it.
-
-## Temporal tracking (optional)
-
-`predict()` above scores one frame. `grasp_classifier.tracking` adds an
-optional, uncertainty-gated correction on top, with no retraining: when the
-single-frame `uncertainty` is at or above the gate (0.09), the instance's mask
-is propagated forward and backward across nearby video frames with SAM2, every
-propagated frame gets the same 80 votes, and the frames are combined by an
-uncertainty-weighted vote (each frame counts in proportion to how unanimous it
-is; ties go to the dropout-off votes).
-
-```python
-from grasp_classifier import EnsembleClassifier
-from grasp_classifier.tracking import TemporalTracker, predict_with_tracking
-
-classifier = EnsembleClassifier(device="cuda:0")
-tracker = TemporalTracker(
-    classifier,
-    sam2_checkpoint="path/to/sam2.1_hiera_large.pt",
-    sam2_config="configs/sam2.1/sam2.1_hiera_l.yaml",
-    device="cuda:0",
-)
-
-result = predict_with_tracking(
-    classifier, tracker, image, frames_dir="path/to/consecutive/frames",
-    center_idx=10, box_xywh=(x, y, w, h), mask=mask,
-)
-print(result.class_name, result.uncertainty, result.tracked)
-```
-
-`frames_dir` is a directory of consecutive video frames (filenames sort
-into chronological order; the research setup used a window of about 10 frames
-either side of the instance); `center_idx` is where, in that sorted list,
-the given frame/box/mask sit. `predict_with_tracking` runs the cheap
-single-frame path first and only invokes SAM2 at or above the gate, matching
-the policy this was validated under. For a tracked result, `uncertainty` is
-the share of the frames' votes, pooled evenly, that name a different class.
-
-Needs `sam2` and a separately downloaded checkpoint, not installed by
-`requirements.txt` -- see `requirements-tracking.txt`. Not required to
-use the base classifier; importing `grasp_classifier.tracking` itself
-doesn't need `sam2` either, only constructing a `TemporalTracker` does.
-
-**Measured on the full official GraSP test set** (not a projection):
-
-| | tracked | accuracy | macro-F1 |
-|---|---|---|---|
-| ensemble alone | none | 0.9266 | 0.8898 |
-| + tracking at gate 0.20 | 18.4% | 0.9581 | 0.9295 |
-| + tracking at gate 0.09 (default) | 29.1% | 0.9623 | 0.9351 |
-
-Every one of the 7 classes improves at the default gate, including the two
-weakest (Laparoscopic Grasper 0.776 -> 0.848 F1, Clip Applier 0.861 -> 0.907
-F1). The default 0.09 was chosen on this test set as the cheapest gate that
-matched an earlier probability-averaging pipeline's accuracy and macro-F1, so
-its numbers are optimistic; choosing the gate by leave-one-case-out among
-0.20, 0.15, 0.10, 0.05 and 0.03 gives 0.9633 accuracy. Below about 0.06,
-tracking more instances stops helping (it breaks about as many correct
-predictions as it fixes). Set `uncertainty_gate` in `ensemble_config.yaml`
-(or pass `uncertainty_gate=` to `predict_with_tracking`) to change it.
-
-**Cost**: SAM2's own per-frame encoding cost alone (~398ms, reference GPU)
-rules out real-time use on any hardware -- this is an offline, batch-applied
-correction, not a pipeline stage for a live video feed. Full per-instance
-cost when tracking does run: ~24s (SAM2 propagation across a ~20-frame
-window plus 80 votes on every frame, about 2s of that on the GPU). See the
-parent research repo's `docs/DECISIONS.md`, 2026-09-20 entries, for the full
-derivation.
-
-## Migrating from the earlier (probability-averaging) version
-
-The earlier version returned `confidence` and `class_probabilities` from an
-averaged softmax, and gated tracking on `confidence < 0.80`. Both are gone:
-use `uncertainty` (lower is more certain) and `needs_tracking`, and read
-`vote_shares` for the per-class vote split. The checkpoints and
-`ensemble_config.yaml` changed with it; the old checkpoints do not load into
-the new models. The earlier version stays available in this repository's git
-history (commit `92717d3`).
-
-## What's not in this package
-
-Training code, experiment configs, the dataset, and the report/decision
-log live in the parent research repository -- this package is the
-integration-ready output of that work, not the research process. If you
-need to retrain, re-benchmark, or understand *why* a given design choice
-was made, that context is there, not here.
+- `WEIGHTS.md`: every weight file, how it was trained, the seeds, and what was and was not validated.
+- `docs/LEGACY_VOTE_PIPELINE.md`: the earlier classifier-only package with MC-dropout votes (still importable as `grasp_classifier.EnsembleClassifier`).
+- Research repository (training code, protocol, results, decision log): `volcanictv/grasp-lightweight-instrument-recognition`, master at the merge of
+  PR #7. The protocol of this configuration is `docs/reports/gtbox_sam_protocol.md` there, written before each run it governs.
