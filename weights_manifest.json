@@ -1,201 +1,201 @@
 {
- "note": "url is null until the files are published; copy them into place by hand until then",
+ "note": "GraSP weights are hosted at https://huggingface.co/AryanB005/grasp-instrument-pipeline (urls pinned to a commit); the SAM2.1 base is Meta's public file",
  "files": [
   {
    "path": "weights/evidential_armN_seed42/resnet50_320.pt",
    "bytes": 94389485,
    "sha256": "6709fa26c36643f357761f96a3bb47ac62165f84bb63ee5182034421839bb148",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 42, resnet50_320",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed42/resnet50_320.pt"
   },
   {
    "path": "weights/evidential_armN_seed42/resnet50_224.pt",
    "bytes": 94389485,
    "sha256": "6bb651770f27c07c6f773e84e3686da150640d5eb4485d27f92f2b39778d88e8",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 42, resnet50_224",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed42/resnet50_224.pt"
   },
   {
    "path": "weights/evidential_armN_seed42/mobilenet_baseline.pt",
    "bytes": 6223145,
    "sha256": "db663abf416de7938f02ba8d0848d2f2f5f834a2959e7d085ceae1cd4d3f2cb3",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 42, baseline",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed42/mobilenet_baseline.pt"
   },
   {
    "path": "weights/evidential_armN_seed42/mobilenet_letterbox.pt",
    "bytes": 6223145,
    "sha256": "fb267a13696a092d1e72e917dc5954c6a6c229e02a65bf11f6a0370b3bb8dbfe",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 42, letterbox_crop",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed42/mobilenet_letterbox.pt"
   },
   {
    "path": "weights/evidential_armN_seed43/resnet50_320.pt",
    "bytes": 94389485,
    "sha256": "0672cb4a79357fb5b40806680a6e58928a15dabad361a6c330bcac21e0496544",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 43, resnet50_320",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed43/resnet50_320.pt"
   },
   {
    "path": "weights/evidential_armN_seed43/resnet50_224.pt",
    "bytes": 94389485,
    "sha256": "6fd8b110a499254643605ec5e01bfc7b9a5fa4788a703e4abcc46a617769c5c3",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 43, resnet50_224",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed43/resnet50_224.pt"
   },
   {
    "path": "weights/evidential_armN_seed43/mobilenet_baseline.pt",
    "bytes": 6223145,
    "sha256": "023e9a583d29d7875a20e1eb90031b212ffa41809892ef0f158d03c6b8fe1d56",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 43, baseline",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed43/mobilenet_baseline.pt"
   },
   {
    "path": "weights/evidential_armN_seed43/mobilenet_letterbox.pt",
    "bytes": 6223145,
    "sha256": "a4d2cb0ee92df1d6fec7aa333b70747d9b2017574e87c820d61b6e5deb8bcc6f",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 43, letterbox_crop",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed43/mobilenet_letterbox.pt"
   },
   {
    "path": "weights/evidential_armN_seed44/resnet50_320.pt",
    "bytes": 94389485,
    "sha256": "86eb13e6faa9254167cbd3b3a6ab27640b272c4f9a0f6ffb3ec7e628c95344cf",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 44, resnet50_320",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed44/resnet50_320.pt"
   },
   {
    "path": "weights/evidential_armN_seed44/resnet50_224.pt",
    "bytes": 94389485,
    "sha256": "122d59eae9857a547ab3b8b1f41198c669584a2d3a7ca22abdf6095916ec584f",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 44, resnet50_224",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed44/resnet50_224.pt"
   },
   {
    "path": "weights/evidential_armN_seed44/mobilenet_baseline.pt",
    "bytes": 6223145,
    "sha256": "d73713e8a96d317d1de83161946556f5c202dd5044f5114dbde1eb03dcf2ee93",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 44, baseline",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed44/mobilenet_baseline.pt"
   },
   {
    "path": "weights/evidential_armN_seed44/mobilenet_letterbox.pt",
    "bytes": 6223145,
    "sha256": "f92f29141c28b54dda8dc72754130d0d883e430d8952c740eb36d00febcf1787",
    "role": "evidential member, tracker-style-crop training (final configuration), seed 44, letterbox_crop",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_armN_seed44/mobilenet_letterbox.pt"
   },
   {
    "path": "weights/evidential_baseline_seed42/resnet50_320.pt",
    "bytes": 94389485,
    "sha256": "66dcfe9fbd317fcee731d6b370d8f13484bfdb554e5ab1b37943e24be57ba0c5",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 42, resnet50_320",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed42/resnet50_320.pt"
   },
   {
    "path": "weights/evidential_baseline_seed42/resnet50_224.pt",
    "bytes": 94389485,
    "sha256": "1942f2320cc552a4febb7b302a2b7f80797b15741815e63ebfd9aed52fd10eb1",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 42, resnet50_224",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed42/resnet50_224.pt"
   },
   {
    "path": "weights/evidential_baseline_seed42/mobilenet_baseline.pt",
    "bytes": 6223145,
    "sha256": "e83d63b6592ad371543276c50804be3dff0452304a80cf14fd2fdc8dbbec5e03",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 42, baseline",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed42/mobilenet_baseline.pt"
   },
   {
    "path": "weights/evidential_baseline_seed42/mobilenet_letterbox.pt",
    "bytes": 6223145,
    "sha256": "cc22de6a572681cce36777665a46148149d91bbe261e4496e697e5e8e74328fb",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 42, letterbox_crop",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed42/mobilenet_letterbox.pt"
   },
   {
    "path": "weights/evidential_baseline_seed43/resnet50_320.pt",
    "bytes": 94389485,
    "sha256": "8cc63434be0ac095ce729d30fd28a315e2e3e87db92f1d47059e3a3ba025f0b4",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 43, resnet50_320",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed43/resnet50_320.pt"
   },
   {
    "path": "weights/evidential_baseline_seed43/resnet50_224.pt",
    "bytes": 94389485,
    "sha256": "68f02db9c726378a9c12ff7c59a8f083dcbbab2224667c83db03857720d60966",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 43, resnet50_224",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed43/resnet50_224.pt"
   },
   {
    "path": "weights/evidential_baseline_seed43/mobilenet_baseline.pt",
    "bytes": 6223145,
    "sha256": "7cc39718f190416374f38ab9d90bef2783a83f4e46004b09ddc639bf4aa437f0",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 43, baseline",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed43/mobilenet_baseline.pt"
   },
   {
    "path": "weights/evidential_baseline_seed43/mobilenet_letterbox.pt",
    "bytes": 6223145,
    "sha256": "75e970e4b25fa5ad6738cf99798d688432ffd482e3d070f13d67e40773463ca4",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 43, letterbox_crop",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed43/mobilenet_letterbox.pt"
   },
   {
    "path": "weights/evidential_baseline_seed44/resnet50_320.pt",
    "bytes": 94389485,
    "sha256": "83dd2fbb53821bd70e0a8b6e5ad8478bcbbf5e2668b95545b54d4b8f32b6a10f",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 44, resnet50_320",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed44/resnet50_320.pt"
   },
   {
    "path": "weights/evidential_baseline_seed44/resnet50_224.pt",
    "bytes": 94389485,
    "sha256": "ac9658acf41b181fd7da25c1dd1f3d06f05b50bd1c9df57012ebf4275103b34d",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 44, resnet50_224",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed44/resnet50_224.pt"
   },
   {
    "path": "weights/evidential_baseline_seed44/mobilenet_baseline.pt",
    "bytes": 6223145,
    "sha256": "b1a0c384a8fe47190f3562da2db11e995d9b033427ddfa132a6e9cc3e380a8db",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 44, baseline",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed44/mobilenet_baseline.pt"
   },
   {
    "path": "weights/evidential_baseline_seed44/mobilenet_letterbox.pt",
    "bytes": 6223145,
    "sha256": "e4e657ac21cc992e4073d00da7117810708af36a3b5184be6b0c5bb03ed2924d",
    "role": "evidential member, baseline training (ablation rungs 1 and 2), seed 44, letterbox_crop",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/evidential_baseline_seed44/mobilenet_letterbox.pt"
   },
   {
    "path": "weights/sam2_delta.pt",
    "bytes": 266667386,
    "sha256": "df055733543eb5572e4e04c05c4c6681331d72909edce87568a9ab83370c9a1b",
    "role": "fine-tuned SAM2.1-large delta, trained on all 8 training cases",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/sam2_delta.pt"
   },
   {
    "path": "weights/sam3_delta.pt",
    "bytes": 14598843,
    "sha256": "b55548e4b3a5525ef239a0ebcc044e376cea121683ac82530a9e064db29811b5",
    "role": "fine-tuned SAM3 delta, trained on all 8 training cases (needs the gated facebook/sam3 base)",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/sam3_delta.pt"
   },
   {
    "path": "weights/sam2_delta_fold2.pt",
    "bytes": 266668436,
    "sha256": "e49563938e9c6fbf52459b1adf51e7117a5de6733307ae7f58400d9bc14e69b9",
    "role": "fine-tuned SAM2.1-large delta of the earlier rungs, fold2 cases only",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/sam2_delta_fold2.pt"
   },
   {
    "path": "weights/sam3_delta_fold2.pt",
    "bytes": 14599579,
    "sha256": "2d603c9f1cdcbb65d657e29a47fa87c1554db73d54acb8e89f2384802235a663",
    "role": "fine-tuned SAM3 delta of the earlier rungs, fold2 cases only",
-   "url": null
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/361aa60a42e6febc799d305bb3b4e791fe8355ce/weights/sam3_delta_fold2.pt"
   },
   {
    "path": "weights/sam2.1_hiera_large.pt",

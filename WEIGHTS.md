@@ -1,8 +1,9 @@
 # Weights
 
 `python -m grasp_pipeline.weights` prints every file below with its size and checksum state; `--fetch` downloads the ones that have a URL. The source of
-truth is `weights_manifest.json` (path, bytes, sha256, role, url). A `url` of null means the file is not published yet and must be copied into
-`weights/` by hand; the checksum is still verified.
+truth is `weights_manifest.json` (path, bytes, sha256, role, url). The GraSP files are hosted at https://huggingface.co/AryanB005/grasp-instrument-pipeline with
+URLs pinned to a commit; the SAM2.1 base uses Meta's URL. A file with a null `url` would have to be copied into `weights/` by hand; the checksum is
+verified either way.
 
 ## Files
 

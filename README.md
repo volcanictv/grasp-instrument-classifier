@@ -16,7 +16,7 @@ It takes boxes as input, from your own detector or from ground truth. It does no
 ```bash
 git clone <this repo> && cd grasp-instrument-classifier
 pip install -r requirements.txt -r requirements-pipeline.txt     # see "Install" for the SAM2 package
-python -m grasp_pipeline.weights --fetch                        # downloads what has a published URL and checks every checksum
+python -m grasp_pipeline.weights --fetch                        # downloads the weights (about 2.7 GB) and checks every checksum
 python -m grasp_pipeline.run --frames path/to/frames --boxes boxes.json --out out/ --device cuda
 ```
 
@@ -158,8 +158,8 @@ pip install "git+https://github.com/facebookresearch/sam2@2b90b9f5ceec907a1c1812
 ```
 
 `python -m grasp_pipeline.weights` lists every weight file with its size, checksum state and role. `weights_manifest.json` is the source of truth. The SAM2.1
-base checkpoint has Meta's public URL. The GraSP weights have a download URL only once they are published; until then `url` is null and the files must be
-copied into `weights/` by hand, and the tool still verifies them.
+base checkpoint has Meta's public URL. The GraSP weights are hosted at https://huggingface.co/AryanB005/grasp-instrument-pipeline, with the manifest URLs
+pinned to a commit. `--fetch` downloads and verifies all of them (about 2.7 GB, the default run needs about 1.4 GB of it; use `--only` to restrict).
 
 ## Tests
 

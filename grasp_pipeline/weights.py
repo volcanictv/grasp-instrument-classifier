@@ -3,8 +3,8 @@
     python -m grasp_pipeline.weights            lists every file, whether it is present and whether its checksum matches
     python -m grasp_pipeline.weights --fetch    downloads what is missing and has a published URL
 
-The base SAM2.1-large checkpoint has a public URL. The GraSP fine-tuned weights have one once they are published; until then the manifest's
-`url` is null and the files must be copied into place. SAM3's base weights are not in the manifest: they come from Hugging Face (facebook/sam3,
+The base SAM2.1-large checkpoint has a public URL; the GraSP fine-tuned weights are pinned to a commit of the Hugging Face repo
+AryanB005/grasp-instrument-pipeline. A manifest entry with a null `url` must be copied into place by hand. SAM3's base weights are not in the manifest: they come from Hugging Face (facebook/sam3,
 a gated model that needs `huggingface-cli login` and an accepted licence).
 """
 
