@@ -44,7 +44,25 @@ def build_mobilenet_v3_small_dropout(num_classes: int = NUM_CLASSES) -> nn.Modul
     return model
 
 
+def build_resnet50_plain(num_classes: int = NUM_CLASSES) -> nn.Module:
+    """Plain torchvision ResNet-50 with a linear head: the member architecture of the single-pass evidential
+    ensemble (grasp_classifier.evidential). No dropout; its output logits are read as Dirichlet evidence."""
+    model = resnet50(weights=None)
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    return model
+
+
+def build_mobilenet_v3_small_plain(num_classes: int = NUM_CLASSES) -> nn.Module:
+    """Plain torchvision MobileNetV3-small with a linear final layer (its own pre-classifier dropout is inactive in
+    eval mode): the small member architecture of the evidential ensemble."""
+    model = mobilenet_v3_small(weights=None)
+    model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, num_classes)
+    return model
+
+
 BUILDERS = {
     "resnet50_deepdropout": build_resnet50_dropout,
     "mobilenet_v3_small_deepdropout": build_mobilenet_v3_small_dropout,
+    "resnet50": build_resnet50_plain,
+    "mobilenet_v3_small": build_mobilenet_v3_small_plain,
 }

@@ -1,0 +1,36 @@
+# The evidential four-member ensemble of the final configuration (tracker-style-crop training, "arm N"), seed 44, the seed the pre-registered
+# rule picks. Seeds 42 and 43 are in weights/evidential_armN_seed42 and _seed43: point `checkpoint` at them to use another seed.
+#
+# Member weights: weight_resnet50_320 for the ResNet-50 at 320 px, the other members share the rest equally. 0.40 is the value every reported
+# result used. It was set in the first weeks on the official test set and a later check on held-out folds did not confirm it over flat
+# weights (see WEIGHTS.md), so treat it as a default, not a validated optimum.
+weight_resnet50_320: 0.40
+
+# An instance whose epistemic score reaches this value is flagged for temporal tracking. 1.7e-5 was chosen on a held-out fold for the baseline
+# members; the tracker-style-crop members are less confident, and it flags 42% of the official test instances with seed 44 (45% and 47% with
+# seeds 43 and 42), and tracking is the expensive stage. The reported headline instead tracked a fixed share, the 833 most uncertain of 2,861
+# (29%). The threshold that gives that share on the test run is 1.6e-4 for seed 44 (2.9e-4 seed 43, 3.6e-4 seed 42); those are derived from the
+# test instances, not held-out values. Raise the gate to track fewer instances.
+epistemic_gate: 1.7e-5
+
+members:
+  - checkpoint: weights/evidential_armN_seed44/resnet50_320.pt
+    model: resnet50
+    image_size: 320
+    letterbox: true
+    label: resnet50_320
+  - checkpoint: weights/evidential_armN_seed44/resnet50_224.pt
+    model: resnet50
+    image_size: 224
+    letterbox: true
+    label: resnet50_224
+  - checkpoint: weights/evidential_armN_seed44/mobilenet_baseline.pt
+    model: mobilenet_v3_small
+    image_size: 224
+    letterbox: false
+    label: baseline
+  - checkpoint: weights/evidential_armN_seed44/mobilenet_letterbox.pt
+    model: mobilenet_v3_small
+    image_size: 224
+    letterbox: true
+    label: letterbox_crop

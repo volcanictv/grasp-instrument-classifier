@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grasp-instrument-classifier"
+version = "0.3.0"
+description = "GraSP surgical instrument recognition: box-prompted SAM segmentation, evidential ensemble classifier, SAM2 tracking"
+requires-python = ">=3.10"
+dependencies = ["torch>=2.0", "torchvision>=0.15", "numpy", "Pillow", "PyYAML"]
+
+[project.optional-dependencies]
+pipeline = ["transformers==5.18.0", "huggingface_hub"]
+
+[tool.setuptools.packages.find]
+include = ["grasp_classifier*", "grasp_pipeline*"]

@@ -1,75 +1,49 @@
-# Ensemble weight: kept at 0.40, decided 2026-09-28
+# Weights
 
-`ensemble_config.yaml` sets `weight_resnet50_320: 0.40` (the other 3
-members split the remaining 0.60 equally, 0.20 each). This is the
-**confirmed shipped default**, not an unreviewed carryover: it was
-re-examined against the alternative below and kept deliberately.
+`python -m grasp_pipeline.weights` prints every file below with its size and checksum state; `--fetch` downloads the ones that have a URL. The source of
+truth is `weights_manifest.json` (path, bytes, sha256, role, url). A `url` of null means the file is not published yet and must be copied into
+`weights/` by hand; the checksum is still verified.
 
-Vote-based prediction (weighted plurality of the stochastic votes), measured
-on GraSP's official test set with oracle boxes and masks:
+## Files
 
-| configuration | accuracy | macro-F1 | share of instances at uncertainty >= 0.09 |
-|---|---|---|---|
-| weighted (0.40 / 0.20 / 0.20 / 0.20), **current default** | 0.9266 | 0.8898 | 29.1% |
-| flat (0.25 each) | 0.9238 | 0.8943 | 29.7% |
+| what | notes |
+|---|---|
+| SAM2.1 Hiera-large base checkpoint | Meta, public URL, Apache 2.0 |
+| SAM2 delta (decoder, prompt encoder, neck, last four encoder blocks), 267 MB | applied over the base at load time |
+| SAM3 delta (mask decoder and prompt encoder), 15 MB | applied over `facebook/sam3` (gated, Hugging Face) |
+| `weights/evidential_armN_seed{42,43,44}/`, four classifier members per seed | seed 44 is the default in `evidential_config.yaml` |
 
-The weighted setting scores higher on accuracy, the flat one on macro-F1;
-the gaps are small (0.003 and 0.005) and mixed, not a clear win either way.
-An earlier ensemble's held-out check on a fresh split favoured flat
-weighting slightly; that check was not repeated for these retrained
-checkpoints. Decision: keep 0.40. Every result reported for this pipeline
-(the tracking-gate confirmation, the final accuracy/macro-F1 numbers, the
-EndoVis generalization check, and the uncertainty-method comparisons) was
-computed with 0.40, and re-deriving all of it to chase a gap this small was
-judged not worth it. To use the flat configuration anyway, change
-`weight_resnet50_320` to `0.25` in `ensemble_config.yaml`; no code change is
-needed.
+The manifest also lists two sets that the default run does not use, for reproducing the research ladder: `weights/evidential_baseline_seed{42,43,44}/`
+(members trained without the tracker-style-crop augmentation) and `weights/sam{2,3}_delta_fold2.pt` (the segmenters of the earlier ladder rungs, trained on the
+fold2 cases only; the manifest role string is authoritative). Exact file names, sizes and checksums are in `weights_manifest.json`.
 
-# Checkpoints
+The segmenter deltas were trained on all 8 GraSP training cases with ground-truth boxes as prompts. Fine-tuning was run once per model (no seed
+repetition). The SAM3 encoder was never trained: an option for it existed in the training script but `get_image_embeddings` is `no_grad`, so only the
+mask decoder changed (the research repository's protocol document records this as a correction).
 
-The four files in `weights/` (about 200 MB together) are the retrained
-members, each trained with dropout inside the network (Dropout(0.2) before
-the classifier plus channel-wise Dropout2d(0.1) after two mid/late stages),
-on GraSP's official training cases:
+## Classifier members
 
 | file | architecture | input | crop |
 |---|---|---|---|
-| `resnet50_320_dropout.pt` | ResNet-50 | 320 px | letterboxed |
-| `resnet50_224_dropout.pt` | ResNet-50 | 224 px | letterboxed |
-| `mobilenet_baseline_dropout.pt` | MobileNetV3-small | 224 px | stretched |
-| `mobilenet_letterbox_dropout.pt` | MobileNetV3-small | 224 px | letterboxed |
+| `resnet50_320.pt` | ResNet-50 | 320 px | letterboxed |
+| `resnet50_224.pt` | ResNet-50 | 224 px | letterboxed |
+| `mobilenet_baseline.pt` | MobileNetV3-small | 224 px | stretched |
+| `mobilenet_letterbox.pt` | MobileNetV3-small | 224 px | letterboxed |
 
-They are not compatible with the earlier softmax-averaging ensemble's
-checkpoints (different layer structure), and the reverse. Checkpoint
-selection for these members used the official test set as validation, as it
-did for the earlier ones, so the test numbers in the README are not
-independent of that choice.
+Trained on the official GraSP training cases with the tracker-style-crop augmentation. Logits are read as Dirichlet evidence,
+`alpha = exp(clip(logit, -10, 10)) + 1`.
 
-# Status of the evidential default (2026-09-29)
+Seed 44 is the registered default because it had the best fold-1 accuracy of the three-member ensembles, a rule fixed before the test run. Seeds 42 and
+43 are included so the seed spread can be reproduced; the three-seed mean is in the README.
 
-The research repository now defines the evidential pipeline as its default
-(`configs/pipeline_default.yaml` there). The checkpoints in `weights/` are the
-dropout-trained members of the vote pipeline. The evidential members are
-separate checkpoints (same four architectures, trained with the evidential
-Dirichlet loss, lambda 0.01, KL anneal 10 of 20 epochs, no dropout-based
-uncertainty needed). They are on the lab machine and have **not been released**
-into this package, and this package contains no evidential inference code, so
-nothing here changes what `predict()` does.
+## The 0.40 member weight: what was and was not validated
 
-Measured on GraSP's official test set (2,861 instances, 5 cases):
+`weight_resnet50_320: 0.40` (the other three members 0.20 each) was set in the first weeks of the project on the official test set, for the earlier
+vote-based package. Every result reported for the evidential pipeline used it. A later check on held-out folds did not confirm it over flat weights
+(0.25 each). The flat-weights version of the final configuration was not run on the test set, so how much the 0.40 matters here is not measured. To try
+flat weights, set `weight_resnet50_320: 0.25` in `evidential_config.yaml`; no code change is needed.
 
-| pipeline | tracked | accuracy | macro-F1 | passes per instance |
-|---|---|---|---|---|
-| vote pipeline (this package), 9% gate, single training | 833 | 0.9623 | 0.9351 | 80 |
-| evidential, same 833-instance budget, mean of 3 seeds | 833 | 0.9577 +/- 0.0050 | 0.9320 +/- 0.0073 | 4 |
-| three-member evidential, same budget, mean of 3 seeds | 833 | 0.9593 +/- 0.0039 | 0.9372 +/- 0.0033 | 3 |
-| evidential, seed 42, fold1-chosen threshold | 539 | 0.9507 | 0.9279 | 4 |
+## Legacy vote-pipeline weights
 
-Seed 42, the one the fold1 threshold was set on and the lowest of the three,
-is 0.9521 at 833 instances. Averaged over seeds the evidential pipeline is 0.3
-to 0.5 points below the vote pipeline at matched budgets (525, 649 and 833
-instances), less than the seed standard deviation of about half a point. The
-vote pipeline is one training, so its own seed spread is unknown. The
-evidential pipeline is chosen as the lab default for cost and defensibility,
-not accuracy, and it is not better calibrated than softmax. The evidential
-ensemble alone scores 0.9240 +/- 0.0031 accuracy across three seeds.
+The earlier MC-dropout package (`weights/*_dropout.pt`, `ensemble_config.yaml`, `grasp_classifier.EnsembleClassifier`) is unchanged and documented in
+`docs/LEGACY_WEIGHTS.md` and `docs/LEGACY_VOTE_PIPELINE.md`.
