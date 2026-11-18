@@ -1,0 +1,48 @@
+{
+ "class_set": "grasp",
+ "class_names": [
+  "Bipolar Forceps",
+  "Prograsp Forceps",
+  "Large Needle Driver",
+  "Monopolar Curved Scissors",
+  "Suction Instrument",
+  "Clip Applier",
+  "Laparoscopic Grasper"
+ ],
+ "rule": "hard",
+ "allowed_duplicates": [
+  "Large Needle Driver"
+ ],
+ "class_counts": [
+  1694,
+  741,
+  896,
+  1765,
+  816,
+  64,
+  194
+ ],
+ "frames_with_class": [
+  1691,
+  737,
+  482,
+  1765,
+  816,
+  64,
+  194
+ ],
+ "frames_with_duplicate": [
+  3,
+  4,
+  414,
+  0,
+  0,
+  0,
+  0
+ ],
+ "prior_shift": -0.5,
+ "provenance": {
+  "source": "grasp_short-term_train.json",
+  "frames": 2324
+ }
+}

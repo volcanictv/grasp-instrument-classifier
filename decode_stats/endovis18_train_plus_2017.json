@@ -1,0 +1,64 @@
+{
+ "class_set": "endovis18",
+ "class_names": [
+  "Bipolar Forceps",
+  "Prograsp Forceps",
+  "Large Needle Driver",
+  "Monopolar Curved Scissors",
+  "Ultrasound Probe",
+  "Suction Instrument",
+  "Clip Applier"
+ ],
+ "rule": "soft",
+ "allowed_duplicates": [],
+ "class_counts": [
+  2441,
+  3289,
+  3581,
+  1711,
+  686,
+  185,
+  15
+ ],
+ "frames_with_class": [
+  2152,
+  1902,
+  1367,
+  1537,
+  584,
+  181,
+  13
+ ],
+ "frames_with_duplicate": [
+  213,
+  852,
+  1124,
+  158,
+  98,
+  3,
+  2
+ ],
+ "prior_shift": 0.0,
+ "provenance": {
+  "sources": [
+   {
+    "source": "EndoVis 2018 ISINet-split training sequences",
+    "frames": 1629
+   },
+   {
+    "source": "EndoVis 2017 per-frame type masks, types 1,2,3,6,7 -> BF,PF,LND,MCS,UP; labels without an image skipped",
+    "frames": 2621
+   }
+  ],
+  "note": "penalties from the frames the members were trained on (EndoVis 2018 train plus the complete 2017 set); estimated with 2018 alone the decode was worse on the validation sequences"
+ },
+ "duplicate_penalty": [
+  -2.3091058426944824,
+  -0.8029526678596315,
+  -0.1962975106499284,
+  -2.269983931618648,
+  -1.7781999394424228,
+  -3.82319179172153,
+  -1.6094379124341003
+ ]
+}

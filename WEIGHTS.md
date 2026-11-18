@@ -44,6 +44,21 @@ vote-based package. Every result reported for the evidential pipeline used it. A
 (0.25 each). The flat-weights version of the final configuration was not run on the test set, so how much the 0.40 matters here is not measured. To try
 flat weights, set `weight_resnet50_320: 0.25` in `evidential_config.yaml`; no code change is needed.
 
+## Which weights are behind the paper's numbers
+
+**GraSP.** The paper's GraSP rows (three seeds, ground-truth masks) use `weights/evidential_armN_seed{42,43,44}/`. Their sha256 equals that of the
+research checkpoints the numbers were produced with (`configs/arms/ens4_N_official_s{42,43,44}.yaml` of the research repository, 12 of 12 files compared
+on 2026-11-18), so the hosted files are the same bytes. The segmenter deltas are not involved: the paper's setting gives the masks.
+
+**EndoVis 2018.** The EndoVis rows use four members per seed (3 seeds) trained on the EndoVis 2018 ISINet-split training sequences plus the complete
+EndoVis 2017 (2017 types 1, 2, 3, 6 keep their class, type 7 "Other" is treated as Ultrasound Probe, vessel sealer and grasping retractor are dropped;
+2017 crops have no tracker-style neighbours). Recipe: `scripts/endovis_gtbox_classifiers_grasp_e17.py` of the research repository (the GraSP recipe, 20
+epochs). The 12 files (604 MB) are hosted in the same Hugging Face repository as the GraSP weights, under
+`weights/evidential_endovis18_2017_seed{42,43,44}/` with the same file names as the GraSP members (commit `be03603`, pinned in `weights_manifest.json`;
+sizes and sha256 of every file were checked against the stored copies after the upload). `evidential_config_endovis18.yaml` points at seed 42; fetch with
+`python -m grasp_pipeline.weights --fetch --only evidential_endovis18_2017_seed42`. A parity check of the shipped inference path (class set, crop code, member
+loading) against the research logits of seed 42 is in `docs/REPRODUCING_THE_PAPER.md`.
+
 ## Legacy vote-pipeline weights
 
 The earlier MC-dropout package (`weights/*_dropout.pt`, `ensemble_config.yaml`, `grasp_classifier.EnsembleClassifier`) is unchanged and documented in

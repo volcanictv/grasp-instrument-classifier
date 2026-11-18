@@ -1,0 +1,31 @@
+# The EndoVis 2018 ensemble of the paper: four members trained on EndoVis 2018 (ISINet split) plus the complete EndoVis 2017, seed 42.
+# Seeds 43 and 44 are weights/evidential_endovis18_2017_seed43 and _seed44 (point the checkpoint paths at them). The weights are hosted with the others;
+# `python -m grasp_pipeline.weights --fetch --only evidential_endovis18_2017_seed42` downloads and verifies them.
+#
+# class_set endovis18 is the class order of these members (it has an Ultrasound Probe and no Laparoscopic Grasper); see grasp_classifier/classes.py.
+# The frame decode uses decode_stats/endovis18_train_plus_2017.json (soft duplicate penalties from the frames the members were trained on, no prior shift).
+class_set: endovis18
+weight_resnet50_320: 0.40
+epistemic_gate: 1.7e-5
+
+members:
+  - checkpoint: weights/evidential_endovis18_2017_seed42/resnet50_320.pt
+    model: resnet50
+    image_size: 320
+    letterbox: true
+    label: resnet50_320
+  - checkpoint: weights/evidential_endovis18_2017_seed42/resnet50_224.pt
+    model: resnet50
+    image_size: 224
+    letterbox: true
+    label: resnet50_224
+  - checkpoint: weights/evidential_endovis18_2017_seed42/mobilenet_baseline.pt
+    model: mobilenet_v3_small
+    image_size: 224
+    letterbox: false
+    label: baseline
+  - checkpoint: weights/evidential_endovis18_2017_seed42/mobilenet_letterbox.pt
+    model: mobilenet_v3_small
+    image_size: 224
+    letterbox: true
+    label: letterbox_crop

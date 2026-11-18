@@ -24,7 +24,7 @@ import numpy as np
 import torch
 import yaml
 
-from grasp_classifier.classes import CLASS_NAMES
+from grasp_classifier.classes import CLASS_SETS
 from grasp_classifier.models import BUILDERS
 from grasp_classifier.preprocess import build_eval_transform, crop_instance
 
@@ -77,11 +77,13 @@ class EvidentialEnsembleClassifier:
     def __init__(self, config_path: Path | str = PACKAGE_ROOT / "evidential_config.yaml", device: str = "cpu"):
         config = yaml.safe_load(Path(config_path).read_text())
         self.epistemic_gate = float(config.get("epistemic_gate", DEFAULT_EPISTEMIC_GATE))
+        self.class_set = config.get("class_set", "grasp")  # "grasp" (default) or "endovis18": the class order the members were trained with
+        self.class_names = list(CLASS_SETS[self.class_set])
         self.device = torch.device(device)
         base = Path(config_path).resolve().parent
         self._members = []
         for member in config["members"]:
-            model = BUILDERS[member["model"]](num_classes=len(CLASS_NAMES))
+            model = BUILDERS[member["model"]](num_classes=len(self.class_names))
             checkpoint = Path(member["checkpoint"])
             checkpoint = checkpoint if checkpoint.is_absolute() else base / checkpoint
             state_dict = torch.load(checkpoint, map_location=self.device)
@@ -115,8 +117,8 @@ class EvidentialEnsembleClassifier:
         alpha = mixture_alpha(logits, self.weights)
         mu = alpha / alpha.sum()
         score = epistemic_score(alpha)
-        return EvidentialPrediction(class_name=CLASS_NAMES[int(mu.argmax())], epistemic=score,
-                                    belief={name: float(v) for name, v in zip(CLASS_NAMES, mu)},
+        return EvidentialPrediction(class_name=self.class_names[int(mu.argmax())], epistemic=score,
+                                    belief={name: float(v) for name, v in zip(self.class_names, mu)},
                                     needs_tracking=score >= self.epistemic_gate, member_logits=logits)
 
     def predict(self, image: np.ndarray, box_xywh: tuple[int, int, int, int], mask: np.ndarray | None = None) -> EvidentialPrediction:
@@ -127,6 +129,6 @@ class EvidentialEnsembleClassifier:
         idx, _share, combined = fuse_frames(np.stack(frame_logits), self.weights)
         pooled = np.stack(frame_logits).mean(axis=0)
         alpha = mixture_alpha(pooled, self.weights)
-        return EvidentialPrediction(class_name=CLASS_NAMES[idx], epistemic=epistemic_score(alpha),
-                                    belief={name: float(v) for name, v in zip(CLASS_NAMES, combined)}, needs_tracking=False,
+        return EvidentialPrediction(class_name=self.class_names[idx], epistemic=epistemic_score(alpha),
+                                    belief={name: float(v) for name, v in zip(self.class_names, combined)}, needs_tracking=False,
                                     member_logits=pooled, tracked=True)

@@ -1,5 +1,5 @@
 {
- "note": "GraSP weights are hosted at https://huggingface.co/AryanB005/grasp-instrument-pipeline (urls pinned to a commit); the SAM2.1 base is Meta's public file",
+ "note": "GraSP and EndoVis 2018 weights are hosted at https://huggingface.co/AryanB005/grasp-instrument-pipeline (urls pinned to a commit); the SAM2.1 base is Meta's public file",
  "files": [
   {
    "path": "weights/evidential_armN_seed42/resnet50_320.pt",
@@ -203,6 +203,90 @@
    "sha256": "2647878d5dfa5098f2f8649825738a9345572bae2d4350a2468587ece47dd318",
    "role": "Meta's public SAM2.1-large checkpoint (base for the delta and for tracking)",
    "url": "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed42/resnet50_320.pt",
+   "bytes": 94409117,
+   "sha256": "c969e80e1529444271b6956b7948e460590150215a3ef0228809f8387d5ae7bd",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 42: ResNet-50, 320 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed42/resnet50_320.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed42/resnet50_224.pt",
+   "bytes": 94409117,
+   "sha256": "921d4d39f083310ba739556aaaf3ece2e0b60cf82ae6ecb6f3a150a8b3200fb2",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 42: ResNet-50, 224 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed42/resnet50_224.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed42/mobilenet_baseline.pt",
+   "bytes": 6234193,
+   "sha256": "baa0cb0cc735c7a00f469fb1f87726e6504f1bc7f48df334229e9606df1418fd",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 42: MobileNetV3-small, 224 px, stretched crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed42/mobilenet_baseline.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed42/mobilenet_letterbox.pt",
+   "bytes": 6235693,
+   "sha256": "5b9e261162e075554a5f41320422feea81529afd58cea928079de6909ccb8e05",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 42: MobileNetV3-small, 224 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed42/mobilenet_letterbox.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed43/resnet50_320.pt",
+   "bytes": 94409117,
+   "sha256": "aff6afe846ef9096e3d3bd4f361e5b6089ff8420e3aa0da64c25839219d1c98f",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 43: ResNet-50, 320 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed43/resnet50_320.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed43/resnet50_224.pt",
+   "bytes": 94409117,
+   "sha256": "62901b12a458d0ca10c571466223e8ba965c89a81178c65f42537224300dfbe0",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 43: ResNet-50, 224 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed43/resnet50_224.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed43/mobilenet_baseline.pt",
+   "bytes": 6234193,
+   "sha256": "a407d37830add6a62e8599f371f4c47194d2066359437378377c97031ca8a3cc",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 43: MobileNetV3-small, 224 px, stretched crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed43/mobilenet_baseline.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed43/mobilenet_letterbox.pt",
+   "bytes": 6235693,
+   "sha256": "1eb3cfb5dec24a5ea6be4bd05583747b6e74c1b9bccf3570cfccf5333cf48792",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 43: MobileNetV3-small, 224 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed43/mobilenet_letterbox.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed44/resnet50_320.pt",
+   "bytes": 94409117,
+   "sha256": "6aac7c16d691d7c06c162664ac5d8fcf0f19d6f29e489c9d90278ffaae6fd42e",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 44: ResNet-50, 320 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed44/resnet50_320.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed44/resnet50_224.pt",
+   "bytes": 94409117,
+   "sha256": "240ce983b9279a30b406424c61d7efd955b934379ad7c67eee6a65b97d6bdfc1",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 44: ResNet-50, 224 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed44/resnet50_224.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed44/mobilenet_baseline.pt",
+   "bytes": 6234193,
+   "sha256": "e4acb2741bcce0664a4122b07649bf1cc02374a6b5489a2e3bbc79629e59ba33",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 44: MobileNetV3-small, 224 px, stretched crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed44/mobilenet_baseline.pt"
+  },
+  {
+   "path": "weights/evidential_endovis18_2017_seed44/mobilenet_letterbox.pt",
+   "bytes": 6235693,
+   "sha256": "6955f627b783897aa82ed14ac58bc291742243102ee651cdef7a475c738c1e19",
+   "role": "EndoVis 2018 member, trained on 2018 plus the complete EndoVis 2017 (GraSP recipe, tracker-style crops for the 2018 samples), seed 44: MobileNetV3-small, 224 px, letterboxed crop",
+   "url": "https://huggingface.co/AryanB005/grasp-instrument-pipeline/resolve/be03603212a56d5b16a6d3c3cabf288dc94f3819/weights/evidential_endovis18_2017_seed44/mobilenet_letterbox.pt"
   }
  ]
 }

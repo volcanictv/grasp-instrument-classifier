@@ -11,6 +11,11 @@ frame + boxes ──► BoxSegmenter ──► masks ──► evidential ensemb
 
 It takes boxes as input, from your own detector or from ground truth. It does not detect instruments.
 
+**Two settings are reported here, and they are different.** The paper studies *recognition with given masks*: every method receives the ground-truth
+instance masks and only has to say which instrument each one is. Those results, for GraSP and EndoVis 2018, are in "Results of the paper" below and
+are what `docs/REPRODUCING_THE_PAPER.md` reproduces. The older section "Earlier results: SAM-predicted masks" scores the same classifier behind the
+box-prompted segmenter and does not use the frame decode.
+
 ## Quickstart
 
 ```bash
@@ -65,12 +70,61 @@ Clip Applier, Laparoscopic Grasper.
 | single pass, no tracking | `--no-tracking` | much faster; no SAM2 video predictor |
 | causal tracking (past frames only) | `--causal` | |
 | clip masks to their boxes | `--clip-to-box` | only meaningful for ground-truth boxes |
+| given masks, no segmenter (the paper's setting) | `--masks-dir DIR` | `<frame stem>.npz` with `masks` (instruments, H, W) per frame |
+| frame decode off | `--no-decode` | reads the largest belief per instrument instead of the joint frame labelling |
 
 SAM3's base weights are a gated model on Hugging Face (`facebook/sam3`): accept the licence on the model page and run `huggingface-cli login` once.
 Without that, use `--no-sam3`. **The measured results below are for SAM2 plus SAM3; SAM2 alone with these weights has not been scored.** For scale, adding
 SAM3 to the segmenter ensemble was worth about 0.4 mIoU in the step table below.
 
-## What it scores
+## Results of the paper (ground-truth masks)
+
+Instance masks are given to every method, so the scores depend only on the assigned classes. Metrics are the benchmark's mIoU, IoU and mcIoU
+(`grasp_pipeline/scoring.py`, ported from the MATIS evaluation). The pipeline here: four-member evidential ensemble, SAM2.1 tracking of the instruments the
+gate flags (`epistemic_gate`, 1.7e-5) over the 10 frames on each side, confidence-weighted fusion, then the frame decode (`grasp_classifier/decode.py`).
+Reproduction steps and the exact scripts are in `docs/REPRODUCING_THE_PAPER.md`.
+
+**GraSP official test** (2,861 instruments, 1,125 frames, 5 cases). Mean of three classifier seeds (42, 43, 44), mean ± SD:
+
+| | mIoU | IoU | mcIoU |
+|---|---|---|---|
+| **This pipeline** (revisit, frame decode with the hard duplicate rule, prior shift -0.5) | **96.72 ± 0.14** | **95.69 ± 0.15** | 90.24 ± 0.27 |
+| the same without the decode and the shift (largest belief per instrument) | 95.95 ± 0.25 | 94.87 ± 0.32 | 89.10 ± 1.09 |
+| TAPIS, released model, masks given | 95.48 | 94.90 | **91.44** |
+| SlowFast (TAPIS region features), masks given | 95.47 | 94.87 | 91.38 |
+
+Per-class IoU of the first row: Bipolar Forceps 95.1, Prograsp Forceps 87.2, Large Needle Driver 93.5, Monopolar Curved Scissors 99.1, Suction Instrument
+92.8, Clip Applier 88.2, Laparoscopic Grasper 75.9 (TAPIS: 94.9, 80.7, 97.0, 98.5, 89.2, 94.2, 85.6). Instance accuracy 96.89 and macro-F1 94.64, against
+96.32 and 93.92 without the decode. **mcIoU is 1.2 points below TAPIS**, almost all of it the Laparoscopic Grasper, whose jaws are often not visible in the
+crop (a closed grasper is a featureless shaft, like a suction tube). The ± are over classifier seeds only; TAPIS and SlowFast are one released model each.
+
+**GraSP validation** (two-fold cross-validation over the training cases, one seed): 96.98 / 95.96 / 89.37 against TAPIS 96.38 / 95.65 / 91.15.
+
+**EndoVis 2018, ISINet split, validation sequences 2, 5, 9, 15** (1,441 instruments, annotation masks given). Members trained on EndoVis 2018 **plus the complete
+EndoVis 2017** (ISINet also used 2017 as extra data; see `WEIGHTS.md` for the class mapping). Mean of three seeds:
+
+| | mIoU | IoU | mcIoU |
+|---|---|---|---|
+| **This pipeline** (revisit, frame decode with soft duplicate penalties) | **94.37 ± 0.69** | **90.31 ± 0.75** | **57.80 ± 3.43** |
+| seed 42 alone | 95.16 | 91.13 | 61.75 |
+| MATIS, released model, masks given | 89.28 | 84.42 | 52.70 |
+| TAPIS (retrained on EndoVis 2018), masks given | 84.58 | 80.72 | 44.63 |
+
+Per-class IoU (three-seed mean): Bipolar Forceps 97.8, Prograsp Forceps 55.7, Large Needle Driver 70.1, Monopolar Curved Scissors 96.5, Suction Instrument
+66.2, Clip Applier 16.3, Ultrasound Probe 1.8. How to read it: most of the gain over members trained on 2018 alone (88.76 / 83.95 / 51.52 at seed 42) is the
+extra training data, which took the Large Needle Driver from 175 to 3,581 training instances (single-pass recall 14% to 76%); the revisit and decode add about
+4 to 5 mIoU on top in both setups. The baselines were not given the 2017 data, so this is not a like-for-like comparison. Clip Applier has only 15 training
+instances and scores 49.0, 0.0 and 0.0 on the three seeds, which is why the mcIoU spread is large. The Ultrasound Probe appears in one training sequence and is
+essentially not recognised.
+
+**What the numbers do and do not show.**
+- The prior shift (-0.5) was picked on the two validation folds; a wider grid put the best at -0.75, and on test the two differ by less than the seed spread. The
+  test split was read for each setting that was scored, so treat the GraSP test row as a development-informed number, not a blind one.
+- The EndoVis decode first used duplicate penalties estimated from the 2018 frames alone and was worse (93.81 / 88.59 / 58.24 at seed 42); the penalties are now
+  estimated from the frames the members were trained on, which is the stated rule, but that correction was made after seeing the first result.
+- Ideas that were tried and did not help are listed in `docs/REPRODUCING_THE_PAPER.md` (a second, wider revisit window was worse on test).
+
+## Earlier results: SAM-predicted masks, no frame decode
 
 GraSP official test set, 2,861 instruments in 1,125 frames from 5 cases, **with ground-truth boxes as input** (TAPIS and ISINet find their own boxes, so
 this is an oracle-box comparison, an upper bound for a pipeline fed by a detector). Segmentation metrics are the benchmark's: mIoU, IoU, mcIoU, computed
@@ -130,6 +184,13 @@ sampling), the classifier on every propagated crop, and a confidence-weighted fu
 (`--causal` propagates backwards only; the cost of doing so was not measured with this tracker). TAPIS is non-causal as well: its 16-frame clip spans about
 8 seconds around the keyframe.
 
+**Frame decode.** After tracking, the instruments of a frame are labelled together instead of one at a time (`grasp_classifier/decode.py`). The labelling with
+the largest total log-belief wins, subject to the fact that a class rarely appears twice in a frame: a second instrument of an already used class pays a
+penalty. On GraSP only the Large Needle Driver repeats (414 of the 421 training frames that repeat a class), so the rule is hard (every other class may appear
+at most once), and a prior shift of -0.5 (favouring frequent classes) removes rare-class false alarms. On EndoVis several classes repeat, so each class gets a
+soft penalty estimated from the training frames. The search is exact and cheap (a dynamic program over the set of used classes). It needs no training and no
+tuned parameter other than the GraSP shift; it added 0.8 mIoU, 0.8 IoU and 1.1 mcIoU on the GraSP test set. Switch it off with `--no-decode`.
+
 ## Cost
 
 Measured on one Titan Xp (Pascal, no fast half precision), one frame at a time, 2.5 instruments per frame on average.
@@ -163,7 +224,7 @@ pinned to a commit. `--fetch` downloads and verifies all of them (about 2.7 GB, 
 
 ## Tests
 
-`pytest tests/test_evidential.py tests/test_pipeline.py tests/test_manifest.py` runs without any weights (synthetic checkpoints; the segmenter and tracker are
+`pytest tests/test_evidential.py tests/test_pipeline.py tests/test_manifest.py tests/test_decode.py tests/test_reproduce.py` runs without any weights (synthetic checkpoints; the segmenter and tracker are
 replaced by stand-ins). The older tests load the shipped vote-pipeline checkpoints and are marked `slow`. Against the research pipeline with the real weights:
 classifier logits on 60 test instruments agree to 7e-5 with identical predictions, segmenter masks on 27 instruments are identical, and the tracker's fused
 class agrees on 6 of 6 tracked instruments.
@@ -179,6 +240,7 @@ class agrees on 6 of 6 tracked instruments.
 
 ## More
 
+- `docs/REPRODUCING_THE_PAPER.md`: how each number of the paper is produced, from a no-GPU check to the full pipeline, and what was tried and rejected.
 - `WEIGHTS.md`: every weight file, how it was trained, the seeds, and what was and was not validated.
 - `docs/LEGACY_VOTE_PIPELINE.md`: the earlier classifier-only package with MC-dropout votes (still importable as `grasp_classifier.EnsembleClassifier`).
 - Research repository (training code, protocol, results, decision log): `volcanictv/grasp-lightweight-instrument-recognition`, master at the merge of

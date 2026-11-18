@@ -1,3 +1,4 @@
 # Extra dependencies of the full pipeline (grasp_pipeline). SAM2 itself is installed from git, see README "Install".
 transformers==5.18.0
 huggingface_hub
+pycocotools   # only for grasp_pipeline.gt_inputs (GraSP annotation masks)
