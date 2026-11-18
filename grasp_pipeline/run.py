@@ -8,7 +8,11 @@
 
 Frames are processed in sorted file-name order and are assumed to be about one second apart. For every frame in `boxes.json` the output holds
 `<frame>.json` (one entry per instrument: box, class, epistemic score, whether it was tracked, the single-pass class) and `<frame>.png`
-(the semantic map, pixel values 0 = background, 1 to 7 the classes in grasp_classifier.CLASS_NAMES order).
+(the semantic map, pixel values 0 = background, 1 to 7 the classes in the order of the classifier's class set).
+
+After tracking, the instruments of a frame are labelled jointly by the frame decode (grasp_classifier.decode); `--no-decode` switches that off. With
+`--masks-dir` the masks are given (the paper's recognition setting, ground-truth masks) and no segmenter is loaded: the directory holds `<frame stem>.npz`
+with an array `masks` of shape (instruments, H, W), in the order of that frame's boxes.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+from grasp_classifier.decode import FrameDecoder
 from grasp_classifier.evidential import EvidentialEnsembleClassifier
 from grasp_pipeline.pipeline import InstrumentPipeline, semantic_map
 from grasp_pipeline.segment import BoxSegmenter
@@ -64,6 +69,10 @@ def main() -> None:
     ap.add_argument("--causal", action="store_true", help="track backwards only")
     ap.add_argument("--gate", type=float, default=None, help="epistemic gate override")
     ap.add_argument("--clip-to-box", action="store_true", help="clip masks to their boxes (only meaningful for ground-truth boxes)")
+    ap.add_argument("--masks-dir", type=Path, default=None, help="given instance masks (<frame stem>.npz with `masks`); skips the segmenter")
+    ap.add_argument("--no-decode", action="store_true", help="read the largest belief per instrument instead of the joint frame decode")
+    ap.add_argument("--decode-stats", type=Path, default=None, help="duplicate and prior statistics (default: decode_stats/ file of the class set)")
+    ap.add_argument("--prior-shift", type=float, default=None, help="override the prior shift stored in the statistics file")
     args = ap.parse_args()
 
     boxes = json.loads(args.boxes.read_text())
@@ -71,11 +80,15 @@ def main() -> None:
     index = {p.name: i for i, p in enumerate(paths)}
     sam2_base = args.weights / "sam2.1_hiera_large.pt"
     classifier = EvidentialEnsembleClassifier(args.config, device=args.device)
-    segmenter = BoxSegmenter(sam2_base, sam2_delta=args.weights / "sam2_delta.pt",
-                             sam3_delta=None if args.no_sam3 else args.weights / "sam3_delta.pt",
-                             device=args.device, clip_to_box=args.clip_to_box)
+    segmenter = None if args.masks_dir else BoxSegmenter(sam2_base, sam2_delta=args.weights / "sam2_delta.pt",
+                                                         sam3_delta=None if args.no_sam3 else args.weights / "sam3_delta.pt",
+                                                         device=args.device, clip_to_box=args.clip_to_box)
     tracker = None if args.no_tracking else EvidentialTracker(classifier, sam2_base, device=args.device, window=args.window, causal=args.causal)
-    pipeline = InstrumentPipeline(segmenter, classifier, tracker, epistemic_gate=args.gate)
+    decoder = None
+    if not args.no_decode:
+        stats = args.decode_stats or ROOT / "decode_stats" / ("endovis18_train_plus_2017.json" if classifier.class_set == "endovis18" else "grasp_official_train.json")
+        decoder = FrameDecoder.from_stats(stats, args.prior_shift)
+    pipeline = InstrumentPipeline(segmenter, classifier, tracker, epistemic_gate=args.gate, decoder=decoder)
     frames = LazyFrames(paths)
     args.out.mkdir(parents=True, exist_ok=True)
     for name, frame_boxes in boxes.items():
@@ -83,12 +96,13 @@ def main() -> None:
             print(f"skipping {name}: no such frame in {args.frames}")
             continue
         i = index[name]
-        results = pipeline.process_frame(frames[i], frame_boxes, context_frames=frames, center_idx=i)
+        masks = None if args.masks_dir is None else [m.astype(bool) for m in np.load(args.masks_dir / f"{Path(name).stem}.npz")["masks"]]
+        results = pipeline.process_frame(frames[i], frame_boxes, context_frames=frames, center_idx=i, masks=masks)
         stem = Path(name).stem
         Image.fromarray(semantic_map(frames[i].shape[:2], results).astype(np.uint8)).save(args.out / f"{stem}.png")
         (args.out / f"{stem}.json").write_text(json.dumps([
             {"box_xywh": list(r.box_xywh), "class": r.class_name, "epistemic": r.epistemic, "tracked": r.tracked,
-             "single_pass_class": r.single_pass_class, "belief": r.belief} for r in results], indent=1))
+             "single_pass_class": r.single_pass_class, "decoded": r.decoded, "belief": r.belief} for r in results], indent=1))
         print(f"{name}: {len(results)} instruments, {sum(r.tracked for r in results)} tracked")
 
 
