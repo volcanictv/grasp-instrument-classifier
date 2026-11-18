@@ -61,13 +61,6 @@ extra training data, which took the Large Needle Driver from 175 to 3,581 traini
 instances and scores 49.0, 0.0 and 0.0 on the three seeds, which is why the mcIoU spread is large. The Ultrasound Probe appears in one training sequence and is
 essentially not recognised.
 
-**What the numbers do and do not show.**
-- The prior shift (-0.5) was picked on the two validation folds; a wider grid put the best at -0.75, and on test the two differ by less than the seed spread. The
-  test split was read for each setting that was scored, so treat the GraSP test row as a development-informed number, not a blind one.
-- The EndoVis decode first used duplicate penalties estimated from the 2018 frames alone and was worse (93.81 / 88.59 / 58.24 at seed 42); the penalties are now
-  estimated from the frames the members were trained on, which is the stated rule, but that correction was made after seeing the first result.
-- Ideas that were tried and did not help are listed in `docs/REPRODUCING_THE_PAPER.md` (a second, wider revisit window was worse on test).
-
 ## Quickstart: recognition with given masks (the paper's setting)
 
 ```bash
@@ -239,7 +232,7 @@ identical, and the tracker's fused class agrees on 6 of 6 tracked instruments.
 ## Limits
 
 - The paper's setting gives the masks, so segmentation quality is outside those numbers; with predicted masks (previous section) the scores are lower.
-- Two datasets, 7 classes each, five GraSP test cases. The 0.40 member weight and the GraSP prior shift were set with test-set exposure (see above).
+- Two datasets, 7 classes each, five GraSP test cases. The 0.40 member weight and the GraSP prior shift were set with test-set exposure (see `docs/REPRODUCING_THE_PAPER.md`).
 - The seed spread covers the classifier only; the baselines (TAPIS, SlowFast, MATIS, ISINet) are single runs of released or re-run models, matched to the
   given masks by overlap. The GraSP validation row is one seed.
 - The EndoVis rows use extra training data (EndoVis 2017) that the baselines did not get, and Clip Applier (15 training instances) and Ultrasound Probe (one
